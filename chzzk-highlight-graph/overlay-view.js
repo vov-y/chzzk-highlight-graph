@@ -15,6 +15,7 @@ const kirinukiOverlayView = (() => {
     previous: '<path d="M6 6v12m12-12-8 6 8 6"/>',
     next: '<path d="M18 6v12M6 6l8 6-8 6"/>',
     seek: '<path d="M5 12h14m-6-6 6 6-6 6"/>',
+    filter: '<path d="M3 6h18M6 12h12M9 18h6"/>',
     locate: '<circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1.5"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>',
     fit: '<path d="M4 5v14m16-14v14M7 12h10m-7-3-3 3 3 3m4-6 3 3-3 3"/>',
     minus: '<path d="M5 12h14"/>',
@@ -123,6 +124,7 @@ const kirinukiOverlayView = (() => {
       background: rgb(255 255 255 / .12); border: 1px solid rgb(255 255 255 / .62);
     }
     #timeline:not([data-exploring]) ~ #tooltip[data-overview] { visibility: hidden }
+    #tooltip[data-native-preview] { visibility: hidden }
     .drag-box {
       position: absolute; inset-block: 0; pointer-events: none; border: 1px solid rgb(186 255 230 / .96);
       background: rgb(103 239 186 / .21); box-shadow: 0 0 0 1px rgb(0 0 0 / .34) inset;
@@ -202,7 +204,7 @@ const kirinukiOverlayView = (() => {
     @keyframes progress { to { opacity: .4 } }
     .section-head { min-height: 32px; margin-top: 7px }
     h3 { font-size: 15px; font-weight: 650; letter-spacing: -.015em }
-    #range-label, .count, .candidate .stamp, #tooltip, #live-settings :is(input, select, textarea) {
+    #range-label, .count, .candidate .stamp, #tooltip, #live-settings :is(input, textarea) {
       font-family: "Pretendard Variable", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
       font-weight: 350;
     }
@@ -240,6 +242,26 @@ const kirinukiOverlayView = (() => {
     .plot-tools svg, .section-head svg { width: 15px; height: 15px }
     .section-head.list-head { border-top: 1px solid var(--rule); padding-top: 7px; margin-top: 0 }
     .count { margin-left: 4px; font-size: 13px }
+    .recommendation-controls {
+      display: flex; align-items: flex-start; gap: 6px; margin: 4px 0 8px; font-size: 12px;
+      overflow-clip-margin: 3px;
+    }
+    .recommendation-scope {
+      display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center;
+      flex: 1; gap: 6px; min-width: 0;
+    }
+    #recommendation-range {
+      color: color-mix(in srgb, var(--range-accent) 60%, var(--ink));
+      overflow-wrap: anywhere;
+    }
+    .recommendation-controls button {
+      display: inline-flex; align-items: center; gap: 4px; min-height: 29px;
+      padding: 4px 6px; border-radius: 6px; white-space: nowrap;
+    }
+    #recommend-in-range { grid-column: 1 / -1; justify-self: start; background: var(--hover-fill) }
+    #recommend-in-range svg { width: 14px; height: 14px }
+    #recommend-all, #recommend-sort { color: var(--quiet) }
+    #recommend-sort { margin-left: auto }
     .candidate {
       position: relative; isolation: isolate; border-radius: 8px;
       display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px;
@@ -258,7 +280,8 @@ const kirinukiOverlayView = (() => {
     .candidate[aria-current=true]::after { opacity: 0 }
     .candidate .stamp { font-size: 14px; line-height: 1.3; letter-spacing: .01em }
     .candidate svg { width: 15px; height: 15px; color: var(--quiet) }
-    #candidates { font-size: 13px; color: inherit }
+    #recommendation-list { position: relative; font-size: 13px }
+    #recommendation-list > .candidate { position: absolute; inset-inline: 0; pointer-events: none }
     /* Keep the backdrop in the same compositing context throughout the reveal. */
     #adjustments {
       display: grid; grid-template-rows: 0fr; transform: translateY(-4px); visibility: hidden;
@@ -278,12 +301,13 @@ const kirinukiOverlayView = (() => {
     #live-settings label { justify-content: space-between; margin: 3px 0 }
     #live-settings fieldset { margin: 4px 0 8px; padding: 5px 0; border: 0; border-bottom: 1px solid var(--rule) }
     #live-settings legend { padding: 0; font-size: 16px; font-weight: 650 }
-    #live-settings :is(input,select,textarea) {
+    #live-settings :is(input,textarea) {
       color-scheme: var(--form-scheme); border: 1px solid var(--edge); border-radius: 7px;
       background-color: rgb(var(--inset-rgb) / .53); padding: 3px 6px;
     }
     #live-settings input { width: 64px }
     .recommendation-fields { display: flex; align-items: center; gap: 8px }
+    .recommendation-fields button { min-height: 28px; padding: 3px 8px; border-radius: 6px; background: var(--hover-fill) }
     #live-settings .recommendation-fields label { margin: 0 }
     #live-settings .expressions { display: grid; justify-content: stretch; gap: 4px }
     #live-settings textarea { width: 100%; resize: vertical; min-height: 36px }
@@ -361,7 +385,15 @@ const kirinukiOverlayView = (() => {
           <h3>추천 구간 <span class="count" id="candidate-count"></span></h3>
           <div class="group">${iconButton("previous", "previous", "이전 추천 구간")}${iconButton("next", "next", "다음 추천 구간")}</div>
         </div>
-        <div id="candidates"></div>
+        <div class="recommendation-controls">
+          <div class="recommendation-scope" id="recommendation-scope" hidden>
+            <button id="recommend-all" type="button" hidden>전체 추천</button>
+            <span id="recommendation-range" role="status" hidden></span>
+            <button id="recommend-in-range" type="button" hidden>${icon("filter")}<span>이 범위에서 추천</span></button>
+          </div>
+          <button id="recommend-sort" type="button" title="추천 구간을 점수순과 시간순으로 전환합니다.">점수순</button>
+        </div>
+        <div id="recommendation-list"><div id="candidates"></div></div>
       </div>
     </div>
   </section>

@@ -126,44 +126,59 @@ export function rankCandidates(basis, weighted, timing) {
   }
   const ordered = peaks.map((_, i) => i);
   ordered.sort((a, b) => combined[peaks[b]] - combined[peaks[a]] || a - b);
-  const ranked = [], occupied = new Map(), spacing = 120;
   const familyNames = Object.keys(FAMILIES);
-  for (const peak of ordered) {
-    const point = peaks[peak], start = point * timing.step, bucket = Math.floor(start / spacing);
-    if ([bucket - 1, bucket, bucket + 1].some(b => Math.abs(start - occupied.get(b)) < spacing)) continue;
-    const chosen = [...enabled]
-      .sort((a, b) => weights[b] * families[b][point] - weights[a] * families[a][point])
-      .slice(0, count);
-    ranked.push({
-      peak,
-      seconds: frameTime(point, timing),
-      score: combined[point],
-      selected_families: chosen,
-      families: Object.fromEntries(familyNames.map(k => [k, families[k][point]])),
-    });
-    occupied.set(bucket, start);
+  function rankPeaks(first = 0, last = peaks.length - 1) {
+    const ranked = [], occupied = new Map(), spacing = 120;
+    for (const peak of ordered) {
+      if (peak < first || peak > last) continue;
+      const point = peaks[peak], start = point * timing.step, bucket = Math.floor(start / spacing);
+      if ([bucket - 1, bucket, bucket + 1].some(b => Math.abs(start - occupied.get(b)) < spacing)) continue;
+      const chosen = [...enabled]
+        .sort((a, b) => weights[b] * families[b][point] - weights[a] * families[a][point])
+        .slice(0, count);
+      ranked.push({
+        peak,
+        seconds: frameTime(point, timing),
+        score: combined[point],
+        selected_families: chosen,
+        families: Object.fromEntries(familyNames.map(k => [k, families[k][point]])),
+      });
+      occupied.set(bucket, start);
+    }
+    return ranked;
   }
   const peakSpans = ordered.map(index => spans[index]);
-  return { peaks, peakSpans, ranked, combined, step: timing.step, window: timing.window };
+  return { peaks, peakSpans, ranked: rankPeaks(), rankPeaks, combined, step: timing.step, window: timing.window };
 }
 
 // Search only the slopes next to shortlisted summits. Cache each visited valley
 // so that two nearby recommendations share the same measured boundary.
-export function recommendedCandidates(pool, config, duration) {
-  const { peaks, ranked, combined } = pool;
+export function recommendedCandidates(pool, config, duration, scope = null) {
+  const { peaks, combined } = pool;
+  const [scopeStart, scopeEnd] = scope ?? [0, duration];
+  const center = frameTime(0, pool);
+  const firstFrame = scope ? Math.max(0, Math.ceil((scopeStart - center) / pool.step)) : 0;
+  const lastFrame = scope
+    ? Math.min(combined.length - 1, Math.floor((scopeEnd - center) / pool.step)) : combined.length - 1;
+  const firstPeak = scope ? peaks.findIndex(point => point >= firstFrame) : 0;
+  const lastPeak = scope ? peaks.findLastIndex(point => point <= lastFrame) : peaks.length - 1;
+  if (firstPeak < 0 || lastPeak < firstPeak) return [];
+  // Apply spacing within the selection so a stronger peak outside it cannot exclude a local one.
+  const ranked = scope ? pool.rankPeaks(firstPeak, lastPeak) : pool.ranked;
   const limit = config.recommend_mode === "percent"
     ? Math.ceil(ranked.length * config.recommend_percent / 100) : config.recommend_count;
   const valleys = new Map(), selected = [], assigned = new Set();
   function valley(split) {
     if (valleys.has(split)) return valleys.get(split);
-    const from = peaks[split - 1] ?? 0, to = peaks[split] ?? combined.length - 1;
+    const from = split === firstPeak ? firstFrame : peaks[split - 1];
+    const to = split > lastPeak ? lastFrame : peaks[split];
     let first = from, last = from;
     for (let i = from + 1; i <= to; i++) {
       if (combined[i] < combined[first]) first = last = i;
       else if (combined[i] === combined[first]) last = i;
     }
-    const edge = (split === 0 && combined[first] === combined[to]) ||
-      (split === peaks.length && combined[first] === combined[from]);
+    const edge = (split === firstPeak && combined[first] === combined[to]) ||
+      (split > lastPeak && combined[first] === combined[from]);
     const base = { first, last, score: edge ? 0 : combined[first], edge };
     valleys.set(split, base);
     return base;
@@ -179,9 +194,9 @@ export function recommendedCandidates(pool, config, duration) {
     if (assigned.has(peak)) continue;
     let left = peak, right = peak, height = candidate.score;
     while (!assigned.has(left) && !assigned.has(right)) {
-      if (left > 0 && shallow(valley(left), valley(left - 1), valley(right + 1), combined[peaks[left - 1]], height)) {
+      if (left > firstPeak && shallow(valley(left), valley(left - 1), valley(right + 1), combined[peaks[left - 1]], height)) {
         height = Math.max(height, combined[peaks[--left]]);
-      } else if (right + 1 < peaks.length &&
+      } else if (right < lastPeak &&
           shallow(valley(right + 1), valley(left), valley(right + 2), height, combined[peaks[right + 1]])) {
         height = Math.max(height, combined[peaks[++right]]);
       } else break;
@@ -189,14 +204,15 @@ export function recommendedCandidates(pool, config, duration) {
     if (assigned.has(left) || assigned.has(right)) continue;
     for (let i = left; i <= right; i++) assigned.add(i);
     const leftBase = valley(left), rightBase = valley(right + 1);
-    const start = leftBase.edge ? 0 : frameTime(leftBase.last, pool);
-    const end = rightBase.edge ? duration : frameTime(rightBase.first, pool);
-    const shiftedStart = Math.max(0, start - lead), shiftedEnd = end - lead;
+    const start = leftBase.edge ? scopeStart : frameTime(leftBase.last, pool);
+    const end = rightBase.edge ? scopeEnd : frameTime(rightBase.first, pool);
+    const shiftedStart = Math.max(scopeStart, start - lead), shiftedEnd = end - lead;
+    const reviewEnd = shiftedEnd > shiftedStart ? shiftedEnd : end;
     selected.push({
       ...candidate,
       rank: selected.length + 1,
       review_start_seconds: shiftedStart,
-      review_end_seconds: shiftedEnd > shiftedStart ? shiftedEnd : end,
+      review_end_seconds: scope ? Math.max(candidate.seconds, reviewEnd) : reviewEnd,
     });
   }
   return selected;

@@ -1,0 +1,36 @@
+.pzp-pc__progress-slider[data-kirinuki-preview-hover] .pzp-ui-slider__handler-wrap {
+  display: block;
+  opacity: 1;
+}
+
+.pzp-pc__seeking-preview[data-kirinuki-preview]:popover-open {
+  position: fixed;
+  inset: 0 auto auto 0 !important;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+  transform: translate(var(--kirinuki-preview-x), var(--kirinuki-preview-y)) !important;
+  transition: none !important;
+  pointer-events: none;
+}
+
+.pzp-pc__seeking-preview[data-kirinuki-preview] .pzp-seeking-preview__sprite {
+  max-width: var(--kirinuki-preview-image-width, none);
+  max-height: var(--kirinuki-preview-image-height, none);
+}
+
+.pzp-seeking-preview__time[data-kirinuki-score]::after {
+  content: " · 점수 " attr(data-kirinuki-score);
+  white-space: nowrap;
+}
+
+.pzp-seeking-preview__description[data-kirinuki-selection]::after {
+  content: attr(data-kirinuki-selection);
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  text-shadow: 0 0 4px #000;
+  white-space: nowrap;
+}

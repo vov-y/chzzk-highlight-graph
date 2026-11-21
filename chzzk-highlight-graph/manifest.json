@@ -16,7 +16,8 @@
   "content_scripts": [
     {
       "matches": ["https://chzzk.naver.com/*"],
-      "js": ["overlay-view.js", "graph-view.js", "content.js"],
+      "css": ["native-preview.css"],
+      "js": ["overlay-view.js", "graph-view.js", "native-preview.js", "content.js"],
       "run_at": "document_idle"
     }
   ],
