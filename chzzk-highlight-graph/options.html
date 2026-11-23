@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>하이라이트 설정</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <h1>기본 설정</h1>
+      <form id="settings">
+        <div id="fields">
+          <fieldset class="player-settings">
+            <legend>플레이어</legend>
+            <label>패널 단축키<select id="highlight-shortcut"></select></label>
+            <label>재생바 위 그래프<input type="checkbox" role="switch" name="overviewGraph" checked></label>
+            <label>마우스를 올리면 패널 확장<input type="checkbox" role="switch" name="expandOnHover" checked></label>
+            <label>패널을 열 때 자동 분석<input type="checkbox" role="switch" name="autoAnalyze" checked></label>
+          </fieldset>
+          <div id="model-fields"></div>
+        </div>
+        <div class="actions">
+          <div class="utilities">
+            <button type="button" class="icon-button" id="reset" aria-label="초기값 불러오기" title="초기값 불러오기">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 11a8 8 0 1 1 2 6.3M4 5v6h6"/></svg>
+            </button>
+            <button type="button" class="icon-button" id="clear" aria-label="분석 캐시 삭제" title="분석 캐시 삭제">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M9 6V4h6v2M6 6l1 14h10l1-14M10 10v6m4-6v6"/></svg>
+            </button>
+          </div>
+          <button type="submit">저장</button>
+        </div>
+        <p id="status" role="status"></p>
+      </form>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

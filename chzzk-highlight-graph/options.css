@@ -1,0 +1,83 @@
+@font-face {
+  font-family: "Pretendard Variable";
+  src: url("fonts/PretendardVariable.woff2") format("woff2");
+  font-weight: 45 920;
+  font-style: normal;
+  font-display: swap;
+}
+:root {
+  color-scheme: dark;
+  --options-font: "Pretendard Variable", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  font: 14px/1.5 var(--options-font);
+  --surface: #23262b;
+  --input: #2d3036;
+  --border: #484d55;
+  --rule: #383c44;
+  --hover: #353942;
+  --quiet: #c9cedc;
+  --accent: #dfe2ea;
+  --on-accent: #202224;
+  background: #17191d;
+  color: #dfe2ea;
+}
+* { box-sizing: border-box }
+body { font-size: inherit }
+main { max-width: 520px; margin: clamp(24px, 6vw, 56px) auto; padding: 0 20px }
+h1 { margin: 0 0 18px; font-size: 22px; font-weight: 650; letter-spacing: -.035em }
+#fields { background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; padding: 11px 18px 15px }
+fieldset { min-width: 0; margin: 0 0 10px; padding: 0 0 10px; border: 0; border-bottom: 1px solid var(--rule) }
+legend { font-size: 16px; font-weight: 650; padding: 0 }
+.recommendation { margin-top: 12px }
+label { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 8px 0 }
+.recommendation-fields { display: flex; align-items: center; gap: 10px; margin-top: 8px }
+.recommendation-fields label { margin: 0; gap: 7px }
+[hidden] { display: none !important }
+input, select, textarea, button {
+  font: inherit; color: inherit; border: 1px solid var(--border); background: var(--input); border-radius: 8px; padding: 4px 8px;
+}
+#fields :is(input:not([type="checkbox"]), select, textarea) { font-family: var(--options-font); font-weight: 350 }
+input { width: 72px }
+.player-settings label:has([role="switch"]) { cursor: pointer }
+.player-settings [role="switch"] {
+  appearance: none; position: relative; flex: none; vertical-align: middle;
+  width: 36px; height: 20px; margin: 0; padding: 0; border-radius: 999px; cursor: pointer;
+}
+.player-settings [role="switch"]::before {
+  content: ""; position: absolute; top: 3px; left: 3px;
+  width: 12px; height: 12px; border-radius: 50%; background: var(--quiet);
+}
+.player-settings [role="switch"]:checked { background: var(--accent); border-color: var(--accent) }
+.player-settings [role="switch"]:checked::before { left: 19px; background: var(--on-accent) }
+@media (forced-colors: active) {
+  .player-settings [role="switch"] { appearance: auto; width: 18px; height: 18px }
+  .player-settings [role="switch"]::before { display: none }
+}
+.expressions { display: grid; justify-content: stretch; gap: 6px }
+textarea { width: 100%; resize: vertical; min-height: 64px }
+.actions, .utilities { display: flex; align-items: center; gap: 4px }
+.actions { justify-content: space-between; margin-top: 12px }
+button { cursor: pointer }
+.icon-button { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; background: transparent; border-color: transparent }
+.icon-button:hover { background: var(--hover) }
+svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round }
+button[type=submit] { min-width: 68px; padding: 6px 12px; font-weight: 650; background: var(--accent); border-color: transparent; color: var(--on-accent) }
+button[type=submit]:hover { opacity: .88 }
+:focus-visible { outline: 2px solid currentColor; outline-offset: 2px }
+button[type=submit]:focus-visible { outline-color: var(--accent) }
+#status { margin: 8px 0 0; color: var(--quiet); overflow-wrap: anywhere }
+#status:empty { margin: 0 }
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --surface: #fff;
+    --input: #f2f3f5;
+    --border: #c7cacf;
+    --rule: #dce0e4;
+    --hover: #e9ebee;
+    --quiet: #4d4d4d;
+    --accent: #202224;
+    --on-accent: #fff;
+    color: #202224;
+    background: #f0f1f2;
+  }
+}
